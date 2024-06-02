@@ -27,9 +27,9 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    const userCollection = client.db("bistroDb").collection("users");
+    const userCollection = client.db("asset_nex").collection("users");
 
-    app.post("/users", async (re, res) => {
+    app.post("/users", async (req, res) => {
       const user = req.body;
       // checking not exist email
       const query = { email: user.email };
