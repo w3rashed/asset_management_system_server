@@ -8,7 +8,7 @@ const port = process.env.PORT || 5000;
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 // middleware
-app.use(cors());
+app.use(cors({ origin: ["http://localhost:5173"] }));
 app.use(express.json());
 
 // -------------------------------------------------
@@ -28,6 +28,13 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("asset_nex").collection("users");
+
+    app.get("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const result = await userCollection.findOne(query);
+      res.send(result);
+    });
 
     app.post("/users", async (req, res) => {
       const user = req.body;
