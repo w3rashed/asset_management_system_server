@@ -28,11 +28,14 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("asset_nex").collection("users");
+    const subscriptionCollection = client.db("asset_nex").collection("subscription");
 
     app.get("/users/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email };
+
       const result = await userCollection.findOne(query);
+      console.log({ query, result });
       res.send(result);
     });
 
@@ -47,6 +50,14 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+
+
+
+    // subscription get
+    app.get('/subscriptions',async(req,res)=>{
+      const result = await subscriptionCollection.find().toArray();
+      res.send(result);
+    })
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
