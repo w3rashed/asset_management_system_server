@@ -31,6 +31,7 @@ async function run() {
       .db("asset_nex")
       .collection("subscription");
     const paymentCollection = client.db("asset_nex").collection("payments");
+    const assetCollection = client.db("asset_nex").collection("assets");
 
     // -----------------------------------------------PAYMENT INTENT
 
@@ -59,7 +60,7 @@ async function run() {
 
       res.send({ paymentResult });
     });
-    // ---------------------------------------------------------------------
+    // ---------------------------------------------------------------------user
 
     app.get("/users/:email", async (req, res) => {
       const email = req.params.email;
@@ -79,6 +80,13 @@ async function run() {
         return res.send({ message: "user already exists", insertedId: null });
       }
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // -------------------------------------------------------------------------------hr manager
+    app.post("/asstes", async (req, res) => {
+      const item = req.body;
+      const result = await assetCollection.insertOne(item);
       res.send(result);
     });
 
