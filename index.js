@@ -1,9 +1,8 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-
 require("dotenv").config();
-
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -28,7 +27,39 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("asset_nex").collection("users");
-    const subscriptionCollection = client.db("asset_nex").collection("subscription");
+    const subscriptionCollection = client
+      .db("asset_nex")
+      .collection("subscription");
+    const paymentCollection = client.db("asset_nex").collection("payments");
+
+    // -----------------------------------------------PAYMENT INTENT
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount, "amount inside the intent");
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    // add payment history and delete paymented items
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+      // carefully delete each item from the cart
+      console.log("payment info", payment);
+
+      res.send({ paymentResult });
+    });
+    // ---------------------------------------------------------------------
 
     app.get("/users/:email", async (req, res) => {
       const email = req.params.email;
@@ -51,13 +82,11 @@ async function run() {
       res.send(result);
     });
 
-
-
     // subscription get
-    app.get('/subscriptions',async(req,res)=>{
+    app.get("/subscriptions", async (req, res) => {
       const result = await subscriptionCollection.find().toArray();
       res.send(result);
-    })
+    });
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
