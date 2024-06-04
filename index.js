@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
@@ -33,12 +34,21 @@ async function run() {
     const paymentCollection = client.db("asset_nex").collection("payments");
     const assetCollection = client.db("asset_nex").collection("assets");
 
+    // jwt related Api
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+
     // -----------------------------------------------PAYMENT INTENT
 
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
-      console.log(amount, "amount inside the intent");
+      // console.log(amount, "amount inside the intent");
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
@@ -56,7 +66,7 @@ async function run() {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
       // carefully delete each item from the cart
-      console.log("payment info", payment);
+      // console.log("payment info", payment);
 
       res.send({ paymentResult });
     });
@@ -67,7 +77,7 @@ async function run() {
       const query = { email };
 
       const result = await userCollection.findOne(query);
-      console.log({ query, result });
+      // console.log({ query, result });
       res.send(result);
     });
 
