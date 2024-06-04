@@ -85,7 +85,7 @@ async function run() {
       const user = req.body;
       // checking not exist email
       const query = { email: user.email };
-      // update name
+      // ------------------------------------------------------update name
       console.log(user);
       const updateName = {
         $set: {
