@@ -81,17 +81,37 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/users", async (req, res) => {
+    app.patch("/users", async (req, res) => {
       const user = req.body;
       // checking not exist email
       const query = { email: user.email };
+      // update name
+      console.log(user);
+      const updateName = {
+        $set: {
+          name: user.name,
+        },
+      };
       const existingUser = await userCollection.findOne(query);
       if (existingUser) {
-        return res.send({ message: "user already exists", insertedId: null });
+        const UpdateResult = await userCollection.updateOne(query, updateName);
+        return res.send(UpdateResult);
       }
       const result = await userCollection.insertOne(user);
-      res.send(result);
+      res.send({ result });
     });
+    // // update user
+    // app.patch("/update_user", async (req, res) => {
+    //   const user = req.body;
+    //   // checking not exist email
+    //   const query = { email: user.email };
+    //   const existingUser = await userCollection.findOne(query);
+    //   if (existingUser) {
+    //     return res.send({ message: "user already exists", insertedId: null });
+    //   }
+    //   const result = await userCollection.insertOne(user);
+    //   res.send(result);
+    // });
 
     // -------------------------------------------------------------------------------hr manager
     app.post("/asstes", async (req, res) => {
