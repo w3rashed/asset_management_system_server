@@ -36,6 +36,9 @@ async function run() {
       .collection("subscriptions");
     const paymentCollection = client.db("asset_nex").collection("payments");
     const assetCollection = client.db("asset_nex").collection("assets");
+    const myEmployeeCollection = client
+      .db("asset_nex")
+      .collection("my_employee");
 
     // jwt related Api
     app.post("/jwt", async (req, res) => {
@@ -132,6 +135,13 @@ async function run() {
         return res.send(result);
       }
       const result = await subscriptionsCollection.insertOne(subsInfo);
+      res.send(result);
+    });
+
+    // add employe also remove form users data
+    app.post("/my_employee", async (req, res) => {
+      const employee = req.body;
+      const result = await myEmployeeCollection.insertOne(employee);
       res.send(result);
     });
 
