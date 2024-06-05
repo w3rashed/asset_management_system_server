@@ -28,9 +28,12 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("asset_nex").collection("users");
-    const subscriptionCollection = client
+    const subscribe_cardCollection = client
       .db("asset_nex")
-      .collection("subscription");
+      .collection("subscribe_card");
+    const subscriptionsCollection = client
+      .db("asset_nex")
+      .collection("subscriptions");
     const paymentCollection = client.db("asset_nex").collection("payments");
     const assetCollection = client.db("asset_nex").collection("assets");
 
@@ -61,15 +64,6 @@ async function run() {
       });
     });
 
-    // add payment history and delete paymented items
-    app.post("/payments", async (req, res) => {
-      const payment = req.body;
-      const paymentResult = await paymentCollection.insertOne(payment);
-      // carefully delete each item from the cart
-      // console.log("payment info", payment);
-
-      res.send({ paymentResult });
-    });
     // ---------------------------------------------------------------------user
 
     app.get("/users/:email", async (req, res) => {
@@ -100,18 +94,6 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send({ result });
     });
-    // // update user
-    // app.patch("/update_user", async (req, res) => {
-    //   const user = req.body;
-    //   // checking not exist email
-    //   const query = { email: user.email };
-    //   const existingUser = await userCollection.findOne(query);
-    //   if (existingUser) {
-    //     return res.send({ message: "user already exists", insertedId: null });
-    //   }
-    //   const result = await userCollection.insertOne(user);
-    //   res.send(result);
-    // });
 
     // -------------------------------------------------------------------------------hr manager
     app.post("/asstes", async (req, res) => {
@@ -120,10 +102,37 @@ async function run() {
       res.send(result);
     });
 
-    // subscription get
-    app.get("/subscriptions", async (req, res) => {
-      const result = await subscriptionCollection.find().toArray();
+    // subscribe_card get
+    app.get("/subscribe_card", async (req, res) => {
+      const result = await subscribe_cardCollection.find().toArray();
       res.send(result);
+    });
+
+    app.patch("/subscriptions", async (req, res) => {
+      const subsInfo = req.body;
+      const newMember = subsInfo.member;
+      console.log(newMember, "fdsadfhkdjsahjk");
+      // checking not exist email
+      const query = { email: subsInfo.email };
+      const existingUser = await subscriptionsCollection.findOne(query);
+
+      // update package
+      const options = {
+        $set: { member: newMember },
+      };
+      if (existingUser) {
+        const result = await subscriptionsCollection.updateOne(query, options);
+        return res.send(result);
+      }
+      const result = await subscriptionsCollection.insertOne(subsInfo);
+      res.send(result);
+    });
+
+    // add payment history and delete paymented items
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+      res.send({ paymentResult });
     });
 
     console.log(
