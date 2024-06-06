@@ -154,6 +154,16 @@ async function run() {
     });
 
     // add employe also remove form users data
+
+    app.get("/my_employee/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = {
+        hrEmail: email,
+      };
+      const result = await myEmployeeCollection.find(query).toArray();
+      res.send(result);
+    });
+
     app.post("/my_employee", async (req, res) => {
       const employee = req.body;
       const result = await myEmployeeCollection.insertOne(employee);
