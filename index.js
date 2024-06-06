@@ -90,7 +90,7 @@ async function run() {
       // checking not exist email
       const query = { email: user.email };
       // ------------------------------------------------------update name
-      console.log(user);
+      // console.log(user);
       const updateName = {
         $set: {
           name: user.name,
@@ -103,6 +103,14 @@ async function run() {
       }
       const result = await userCollection.insertOne(user);
       res.send({ result });
+    });
+
+    app.delete("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      // console.log(query);
+      const result = await userCollection.deleteOne(query);
+      res.send(result);
     });
 
     // -------------------------------------------------------------------------------hr manager
@@ -118,10 +126,17 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/subscriptions/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const result = await subscriptionsCollection.findOne(query);
+      res.send(result);
+    });
+
     app.patch("/subscriptions", async (req, res) => {
       const subsInfo = req.body;
       const newMember = subsInfo.member;
-      console.log(newMember, "fdsadfhkdjsahjk");
+      // console.log(newMember, "fdsadfhkdjsahjk");
       // checking not exist email
       const query = { email: subsInfo.email };
       const existingUser = await subscriptionsCollection.findOne(query);
