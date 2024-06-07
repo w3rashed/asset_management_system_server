@@ -170,6 +170,15 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/my_employee/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = {
+        employee_email: email,
+      };
+      const result = await myEmployeeCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // add payment history and delete paymented items
     app.post("/payments", async (req, res) => {
       const payment = req.body;
