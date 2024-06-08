@@ -84,6 +84,19 @@ async function run() {
       // console.log({ query, result });
       res.send(result);
     });
+    // update user affiliate status
+    app.post("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const status = req.query.status;
+      const statusUpdate = {
+        $set: {
+          affiliate: status,
+        },
+      };
+      const result = await userCollection.updateOne(query, statusUpdate);
+      res.send(result);
+    });
 
     app.patch("/users", async (req, res) => {
       const user = req.body;
@@ -153,6 +166,12 @@ async function run() {
       res.send(result);
     });
 
+    // // member limit update after employee   add/remove
+    // app.patch("/limit/:email", async (req, res) => {
+    //   const email = req.params.email;
+    //   console.log(email);
+    // });
+
     // add employe also remove form users data
 
     app.get("/my_employee/:email", async (req, res) => {
@@ -166,17 +185,41 @@ async function run() {
 
     app.post("/my_employee", async (req, res) => {
       const employee = req.body;
-      const result = await myEmployeeCollection.insertOne(employee);
-      res.send(result);
+      // if add and employee incress the add employee limit
+      const query = { email: employee.hrEmail };
+      const existingUser = await subscriptionsCollection.findOne(query);
+      console.log(existingUser);
+      const options = {
+        $inc: { member: -1 },
+      };
+      if (existingUser) {
+        const result = await subscriptionsCollection.updateOne(query, options);
+        const result2 = await myEmployeeCollection.insertOne(employee);
+        return res.send({ result, result2 });
+      }
+      res.send({ message: "user not found" });
     });
 
     app.delete("/my_employee/:email", async (req, res) => {
       const email = req.params.email;
-      const query = {
+      const hrEmail = req.query.hrEmail;
+      const myquery = {
         employee_email: email,
       };
-      const result = await myEmployeeCollection.deleteOne(query);
-      res.send(result);
+      // if add and employee incress the add employee limit
+      const query = { email: hrEmail };
+      const existingUser = await subscriptionsCollection.findOne(query);
+      const options = {
+        $inc: { member: 1 },
+      };
+      console.log(hrEmail);
+      if (existingUser) {
+        const result = await subscriptionsCollection.updateOne(query, options);
+        const result2 = await myEmployeeCollection.deleteOne(myquery);
+        return res.send({ result, result2 });
+      }
+
+      res.send({ message: "users not found" });
     });
 
     // add payment history and delete paymented items
