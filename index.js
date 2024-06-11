@@ -39,6 +39,9 @@ async function run() {
     const myEmployeeCollection = client
       .db("asset_nex")
       .collection("my_employee");
+    const employeeAssetsCollection = client
+      .db("asset_nex")
+      .collection("employee_assets");
 
     // jwt related Api
     app.post("/jwt", async (req, res) => {
@@ -85,13 +88,19 @@ async function run() {
       res.send(result);
     });
     // update user affiliate status
-    app.post("/users/:email", async (req, res) => {
-      const email = req.params.email;
+    app.post("/users", async (req, res) => {
+      const userInfo = req.body;
+      // console.log(userInfo);
+      const email = userInfo.email;
       const query = { email };
-      const status = req.query.status;
+      const status = userInfo.affiliate;
+      const hr_email = userInfo?.hr_email;
+      const company_logo = userInfo?.company_logo;
       const statusUpdate = {
         $set: {
           affiliate: status,
+          hr_email: hr_email,
+          company_logo: company_logo,
         },
       };
       const result = await userCollection.updateOne(query, statusUpdate);
@@ -126,10 +135,43 @@ async function run() {
       res.send(result);
     });
 
-    // -------------------------------------------------------------------------------hr manager
-    app.post("/asstes", async (req, res) => {
+    // ------------------------------------------------------------------------hr manager
+
+    app.get("/assets/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const result = await assetCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.post("/assets", async (req, res) => {
       const item = req.body;
+      const query = { product_name: item.product_name };
+      const queryEmail = { email: item.email };
+      const updateData = {
+        $set: {
+          product_name: item.product_name,
+          product_type: item.product_type,
+          product_quantity: item.product_quantity,
+          email: item.email,
+          added_date: item.added_date,
+        },
+      };
+      const existingUser = await assetCollection.findOne(queryEmail);
+      const existingItem = await assetCollection.findOne(query);
+      // console.log(existingUser, existingItem);
+      if (existingUser && existingItem) {
+        const result = await assetCollection.updateOne(query, updateData);
+        return res.send(result);
+      }
       const result = await assetCollection.insertOne(item);
+      res.send(result);
+    });
+
+    // --------------------------------------employee_assets
+    app.post("/employee_assets", async (req, res) => {
+      const reqInfo = req.body;
+      const result = await employeeAssetsCollection.insertOne(reqInfo);
       res.send(result);
     });
 
@@ -188,7 +230,7 @@ async function run() {
       // if add and employee incress the add employee limit
       const query = { email: employee.hrEmail };
       const existingUser = await subscriptionsCollection.findOne(query);
-      console.log(existingUser);
+      // console.log(existingUser);
       const options = {
         $inc: { member: -1 },
       };
@@ -212,7 +254,7 @@ async function run() {
       const options = {
         $inc: { member: 1 },
       };
-      console.log(hrEmail);
+      // console.log(hrEmail);
       if (existingUser) {
         const result = await subscriptionsCollection.updateOne(query, options);
         const result2 = await myEmployeeCollection.deleteOne(myquery);
