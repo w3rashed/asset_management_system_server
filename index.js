@@ -39,9 +39,9 @@ async function run() {
     const myEmployeeCollection = client
       .db("asset_nex")
       .collection("my_employee");
-    const employeeAssetsCollection = client
+    const requestAssetsCollection = client
       .db("asset_nex")
-      .collection("employee_assets");
+      .collection("request_assets");
 
     // jwt related Api
     app.post("/jwt", async (req, res) => {
@@ -147,33 +147,128 @@ async function run() {
     app.post("/assets", async (req, res) => {
       const item = req.body;
       const query = { product_name: item.product_name };
-      const queryEmail = { email: item.email };
-      const updateData = {
-        $set: {
-          product_name: item.product_name,
-          product_type: item.product_type,
-          product_quantity: item.product_quantity,
-          email: item.email,
-          added_date: item.added_date,
-        },
-      };
-      const existingUser = await assetCollection.findOne(queryEmail);
       const existingItem = await assetCollection.findOne(query);
-      // console.log(existingUser, existingItem);
-      if (existingUser && existingItem) {
-        const result = await assetCollection.updateOne(query, updateData);
-        return res.send(result);
+      if (existingItem) {
+        res.send({ message: "exist" });
       }
       const result = await assetCollection.insertOne(item);
       res.send(result);
     });
 
-    // --------------------------------------employee_assets
-    app.post("/employee_assets", async (req, res) => {
-      const reqInfo = req.body;
-      const result = await employeeAssetsCollection.insertOne(reqInfo);
+    app.delete("/assets/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await assetCollection.deleteOne(query);
       res.send(result);
     });
+
+    // decriment product quantity
+    app.patch("/asset/dicriment/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updateData = {
+        $inc: {
+          product_quantity: -1,
+        },
+      };
+      const result = await assetCollection.updateOne(query, updateData);
+      res.send(result);
+    });
+
+    // --------------------------------------------------employee_assets
+    app.get("/request_assets/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { hr_email: email };
+      const result = await requestAssetsCollection.find(query).toArray();
+      const isPanding = result.filter((item) => item.status === "pending");
+      res.send(isPanding);
+    });
+    // get my assets ? employee assets
+
+    app.get("/request_assets/myAssets/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = {
+        employee_email: email,
+      };
+      const result = await requestAssetsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.post("/request_assets", async (req, res) => {
+      const reqInfo = req.body;
+      const result = await requestAssetsCollection.insertOne(reqInfo);
+      res.send(result);
+    });
+    // assets request reject
+    app.patch("/request_assets/reject/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const filter = { _id: new ObjectId(id) };
+      console.log(id, data);
+      const updateDoc = {
+        $set: {
+          status: data.status,
+          note: data.note,
+        },
+      };
+      const result = await requestAssetsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // assets request approved
+    app.patch("/request_assets/approdev/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const filter = { _id: new ObjectId(id) };
+      console.log(id, data);
+      const updateDoc = {
+        $set: {
+          status: data.status,
+          note: data.note,
+          Aproved_date: data.Aproved_date,
+        },
+      };
+      const result = await requestAssetsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // app.patch("/request_assets/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const data = req.body;
+    //   const filter = { _id: new ObjectId(id) };
+    //   const filterName = { product_name: data.name };
+    //   console.log(data);
+    //   const updateDoc = {
+    //     $set: {
+    //       status: data.status,
+    //       note: data.note,
+    //     },
+    //   };
+    //   const updateAssets = {
+    //     $inc: {
+    //       product_quantity: -1,
+    //     },
+    //   };
+    //   if (data.status == "approved") {
+    //     const result = await assetCollection.updateOne(
+    //       filterName,
+    //       updateAssets
+    //     );
+    //     const result2 = await requestAssetsCollection.updateOne(
+    //       filter,
+    //       updateDoc
+    //     );
+    //     return res.send(result, result2);
+    //   }
+    //   if (data.status == "approved") {
+    //   }
+
+    //   const result = await requestAssetsCollection.updateOne(
+    //     filter,
+    //     updateDoc
+    //   );
+    //   res.send(result);
+    // });
 
     // subscribe_card get
     app.get("/subscribe_card", async (req, res) => {
