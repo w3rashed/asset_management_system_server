@@ -8,7 +8,7 @@ const port = process.env.PORT || 5000;
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 // middleware
-app.use(cors({ origin: ["http://localhost:5173"] }));
+app.use(cors({ origin: ["http://localhost:5173"], credentials: true }));
 app.use(express.json());
 
 // -------------------------------------------------
@@ -51,6 +51,22 @@ async function run() {
       });
       res.send({ token });
     });
+
+    // middlewares
+    const verifyToken = (req, res, next) => {
+      console.log("insite verify token:", req.headers.authorization);
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: "Unathoorized  access" });
+      }
+      const token = req.headers.authorization;
+      jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: "forbiden access" });
+        }
+        req.decoded = decoded;
+        next();
+      });
+    };
 
     // -----------------------------------------------PAYMENT INTENT
 
@@ -146,11 +162,6 @@ async function run() {
 
     app.post("/assets", async (req, res) => {
       const item = req.body;
-      const query = { product_name: item.product_name };
-      const existingItem = await assetCollection.findOne(query);
-      if (existingItem) {
-        res.send({ message: "exist" });
-      }
       const result = await assetCollection.insertOne(item);
       res.send(result);
     });
@@ -183,16 +194,22 @@ async function run() {
       const isPanding = result.filter((item) => item.status === "pending");
       res.send(isPanding);
     });
-    // get my assets ? employee assets
 
-    app.get("/request_assets/myAssets/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = {
-        employee_email: email,
-      };
-      const result = await requestAssetsCollection.find(query).toArray();
-      res.send(result);
-    });
+    //------------------------------------------------------- get my assets ? employee assets
+
+    app.get(
+      "/request_assets/myAssets/:email",
+      verifyToken,
+      async (req, res) => {
+        const email = req.params.email;
+
+        const query = {
+          employee_email: email,
+        };
+        const result = await requestAssetsCollection.find(query).toArray();
+        res.send(result);
+      }
+    );
 
     app.post("/request_assets", async (req, res) => {
       const reqInfo = req.body;
@@ -204,7 +221,7 @@ async function run() {
       const id = req.params.id;
       const data = req.body;
       const filter = { _id: new ObjectId(id) };
-      console.log(id, data);
+      // console.log(id, data);
       const updateDoc = {
         $set: {
           status: data.status,
@@ -212,6 +229,32 @@ async function run() {
         },
       };
       const result = await requestAssetsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    //-------------------------------------- asset return status update
+    app.patch("/request_assets/return/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const update = {
+        $set: {
+          status: "returned",
+        },
+      };
+      const result = await requestAssetsCollection.updateOne(query, update);
+      res.send(result);
+    });
+
+    //  increased product quantity after return
+    app.patch("/asset/increase/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updateData = {
+        $inc: {
+          product_quantity: +1,
+        },
+      };
+      const result = await assetCollection.updateOne(query, updateData);
       res.send(result);
     });
 
@@ -232,45 +275,6 @@ async function run() {
       res.send(result);
     });
 
-    // app.patch("/request_assets/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const data = req.body;
-    //   const filter = { _id: new ObjectId(id) };
-    //   const filterName = { product_name: data.name };
-    //   console.log(data);
-    //   const updateDoc = {
-    //     $set: {
-    //       status: data.status,
-    //       note: data.note,
-    //     },
-    //   };
-    //   const updateAssets = {
-    //     $inc: {
-    //       product_quantity: -1,
-    //     },
-    //   };
-    //   if (data.status == "approved") {
-    //     const result = await assetCollection.updateOne(
-    //       filterName,
-    //       updateAssets
-    //     );
-    //     const result2 = await requestAssetsCollection.updateOne(
-    //       filter,
-    //       updateDoc
-    //     );
-    //     return res.send(result, result2);
-    //   }
-    //   if (data.status == "approved") {
-    //   }
-
-    //   const result = await requestAssetsCollection.updateOne(
-    //     filter,
-    //     updateDoc
-    //   );
-    //   res.send(result);
-    // });
-
-    // subscribe_card get
     app.get("/subscribe_card", async (req, res) => {
       const result = await subscribe_cardCollection.find().toArray();
       res.send(result);
@@ -302,14 +306,6 @@ async function run() {
       const result = await subscriptionsCollection.insertOne(subsInfo);
       res.send(result);
     });
-
-    // // member limit update after employee   add/remove
-    // app.patch("/limit/:email", async (req, res) => {
-    //   const email = req.params.email;
-    //   console.log(email);
-    // });
-
-    // add employe also remove form users data
 
     app.get("/my_employee/:email", async (req, res) => {
       const email = req.params.email;
