@@ -155,8 +155,51 @@ async function run() {
 
     app.get("/assets/:email", async (req, res) => {
       const email = req.params.email;
-      const query = { email };
-      const result = await assetCollection.find(query).toArray();
+      const search = req.query.searchValue;
+      const filter = req.query.filterValue;
+      const sortValue = req.query.sortValue;
+      console.log(search, filter, sortValue);
+      let query = {};
+      // get data by email
+      if (email) {
+        query.email = email;
+      }
+      // get data bye product name as search
+      if (email && search) {
+        query.$and = [
+          { email: email },
+          { product_name: { $regex: search, $options: "i" } },
+        ];
+      }
+      // get data by filter
+      if (filter && email) {
+        // const filterObj = JSON.parse(filter);
+
+        if (filter === "returnable") {
+          query.$and = [
+            { email: email },
+            {
+              product_type: "returnable",
+            },
+          ];
+        }
+        if (filter === "non_returnable") {
+          query.$and = [{ email: email }, { product_type: "non_returnable" }];
+        }
+        if (filter == "out_of_stock") {
+          query.$and = [{ email: email }, { product_quantity: { $lt: 1 } }];
+          console.log("out of stock");
+        }
+        if (filter === "Available") {
+          query.$and = [{ email: email }, { product_quantity: { $gt: 0 } }];
+        }
+      }
+      let sortObj = {};
+      if (sortValue) {
+        console.log("sort");
+        sortObj = { product_quantity: -1 };
+      }
+      const result = await assetCollection.find(query).sort(sortObj).toArray();
       res.send(result);
     });
 
