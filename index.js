@@ -98,7 +98,6 @@ async function run() {
     app.get("/users/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email };
-
       const result = await userCollection.findOne(query);
       // console.log({ query, result });
       res.send(result);
@@ -117,6 +116,7 @@ async function run() {
           affiliate: status,
           hr_email: hr_email,
           company_logo: company_logo,
+          company_name: userInfo?.company_name,
         },
       };
       const result = await userCollection.updateOne(query, statusUpdate);
@@ -152,6 +152,13 @@ async function run() {
     });
 
     // ------------------------------------------------------------------------hr manager
+
+    app.get("/anAssets/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await assetCollection.findOne(query);
+      res.send(result);
+    });
 
     app.get("/assets/:email", async (req, res) => {
       const email = req.params.email;
@@ -209,7 +216,25 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/assets/:id", async (req, res) => {
+    app.patch("/assets/:id", async (req, res) => {
+      const id = req.params.id;
+      const item = req.body;
+      console.log(item);
+      const query = { _id: new ObjectId(id) };
+      const updateData = {
+        $set: {
+          product_name: item.product_name,
+          product_type: item.product_type,
+          product_quantity: item.product_quantity,
+          email: item.email,
+          added_date: item.added_date,
+        },
+      };
+      const result = await assetCollection.updateOne(query, updateData);
+      res.send(result);
+    });
+
+    app.delete("/deleteAssets/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await assetCollection.deleteOne(query);
@@ -242,7 +267,7 @@ async function run() {
 
     app.get(
       "/request_assets/myAssets/:email",
-      verifyToken,
+
       async (req, res) => {
         const email = req.params.email;
 
@@ -291,6 +316,7 @@ async function run() {
     //  increased product quantity after return
     app.patch("/asset/increase/:id", async (req, res) => {
       const id = req.params.id;
+      console.log(id);
       const query = { _id: new ObjectId(id) };
       const updateData = {
         $inc: {
