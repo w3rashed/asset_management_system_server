@@ -284,10 +284,37 @@ async function run() {
 
       async (req, res) => {
         const email = req.params.email;
+        const search = req.query.searchValue;
+        const filter = req.query.filterValue;
+        const sortValue = req.query.sortValue;
+        console.log(search, filter, sortValue);
+        let query = {};
 
-        const query = {
-          employee_email: email,
-        };
+        if (email) {
+          query.employee_email = email;
+        }
+
+        if (email && search) {
+          query.$and = [
+            { employee_email: email },
+            { name: { $regex: search, $options: "i" } },
+          ];
+        }
+        if (email && filter) {
+          if (filter === "pending") {
+            query.$and = [{ employee_email: email }, { status: "pending" }];
+          }
+          if (filter === "approved") {
+            query.$and = [{ employee_email: email }, { status: "approved" }];
+          }
+          if (filter === "returnable") {
+            query.$and = [{ employee_email: email }, { type: "returnable" }];
+          }
+          if (filter === "non_returnable") {
+            query.$and = [{ employee_email: email }, { type: "non_returnable" }];
+          }
+        }
+
         const result = await requestAssetsCollection.find(query).toArray();
         res.send(result);
       }
@@ -390,6 +417,15 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/my_team/:email", async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      const query = {
+        hrEmail: email,
+      };
+      const result = await myEmployeeCollection.find(query).toArray();
+      res.send(result);
+    });
     app.get("/my_employee/:email", async (req, res) => {
       const email = req.params.email;
       const query = {
